@@ -3,6 +3,7 @@ import re
 import json
 import typing as t
 from blk.types import *
+from natsort import natsorted
 
 __all__ = ['serialize', 'JSON', 'JSON_2', 'JSON_3']
 
@@ -146,6 +147,9 @@ JSON_MIN = 1
 JSON_2 = 3
 JSON_3 = 4
 
+def order_dict(dictionary):
+    return {k: order_dict(v) if isinstance(v, dict) else v
+            for k, v in natsorted(dictionary.items())}
 
 def serialize(root: Section, ostream, out_type: int, is_sorted=False, check_cycle=False):
     mapper = {
@@ -157,5 +161,10 @@ def serialize(root: Section, ostream, out_type: int, is_sorted=False, check_cycl
     if root:
         if check_cycle:
             root.check_cycle()
-        json.dump(mapper.map(root), ostream, cls=NoIndentEncoder, ensure_ascii=False, indent=2, separators=(',', ': '),
+        if ((out_type == 4 or out_type == 3) and is_sorted):
+            jsondict = order_dict(mapper.map(root))
+            is_sorted = false
+        else: 
+            jsondict = mapper.map(root)
+        json.dump(jsondict, ostream, cls=NoIndentEncoder, ensure_ascii=False, indent=2, separators=(',', ': '),
                   sort_keys=is_sorted)
